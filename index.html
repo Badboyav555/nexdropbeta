@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['DM Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #050505;
+            --bg-elevated: #0c0c0c;
+            --card: rgba(255,255,255,0.03);
+            --card-hover: rgba(255,255,255,0.06);
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --fg: #f0ece4;
+            --fg-muted: #8a8578;
+            --gold: #C8A951;
+            --gold-light: #E2C566;
+            --gold-dim: #A68B3C;
+            --gold-glow: rgba(200,169,81,0.15);
+            --danger: #e54d4d;
+            --success: #4ade80;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+        .bg-grid {
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            transition: all 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        .glass:hover {
+            background: var(--card-hover);
+            border-color: var(--border-hover);
+        }
+        .text-gold-gradient {
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dim) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            color: #0a0a0a;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .btn-gold::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            transition: left 0.5s;
+        }
+        .btn-gold:hover::before { left: 100%; }
+        .btn-gold:hover {
+            box-shadow: 0 8px 32px var(--gold-glow), 0 0 60px rgba(200,169,81,0.08);
+            transform: translateY(-1px);
+        }
+        .btn-gold:active { transform: translateY(0) scale(0.98); }
+        .btn-gold:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .btn-gold:disabled::before { display: none; }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-ghost:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(200,169,81,0.05);
+        }
+        .hero-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.4;
+            animation: blobFloat 8s ease-in-out infinite alternate;
+        }
+        .hero-blob-1 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(200,169,81,0.3), transparent 70%);
+            top: -150px; right: -100px;
+        }
+        .hero-blob-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(166,139,60,0.2), transparent 70%);
+            bottom: -100px; left: -80px;
+            animation-delay: -3s;
+        }
+        .hero-blob-3 {
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(226,197,102,0.15), transparent 70%);
+            top: 40%; left: 50%;
+            animation-delay: -5s;
+        }
+        @keyframes blobFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 15px) scale(0.95); }
+            100% { transform: translate(10px, -10px) scale(1.02); }
+        }
+        .code-input-wrapper {
+            position: relative;
+            border-radius: 14px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(200,169,81,0.2), rgba(200,169,81,0.02), rgba(200,169,81,0.2));
+            background-size: 300% 300%;
+            animation: borderShimmer 4s ease-in-out infinite;
+        }
+        @keyframes borderShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .code-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(10,10,10,0.95);
+            border: none;
+            border-radius: 12px;
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            outline: none;
+            transition: box-shadow 0.3s;
+        }
+        .code-input::placeholder {
+            color: var(--fg-muted);
+            letter-spacing: 1px;
+            text-transform: none;
+            font-size: 15px;
+        }
+        .code-input:focus { box-shadow: 0 0 40px var(--gold-glow); }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 50%, 90% { transform: translateX(-6px); }
+            30%, 70% { transform: translateX(6px); }
+        }
+        .shake { animation: shake 0.5s ease-in-out; }
+        @keyframes errorSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .error-msg { animation: errorSlideIn 0.35s ease-out; }
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2.5px solid rgba(10,10,10,0.2);
+            border-top-color: #0a0a0a;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+        .spinner-light {
+            border-color: rgba(200,169,81,0.2);
+            border-top-color: var(--gold);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        #toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 280px;
+            animation: toastIn 0.4s cubic-bezier(.4,0,.2,1);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+        }
+        .toast-success { background: rgba(74,222,128,0.1); color: var(--success); border-color: rgba(74,222,128,0.2); }
+        .toast-error { background: rgba(229,77,77,0.1); color: var(--danger); border-color: rgba(229,77,77,0.2); }
+        .toast-info { background: rgba(200,169,81,0.1); color: var(--gold-light); border-color: rgba(200,169,81,0.2); }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+        .avatar-ring {
+            padding: 2px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            border-radius: 50%;
+        }
+        .step-number {
+            width: 56px; height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(200,169,81,0.12), rgba(200,169,81,0.04));
+            border: 1px solid rgba(200,169,81,0.15);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--gold);
+        }
+        .feature-icon {
+            width: 48px; height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(200,169,81,0.08);
+            border: 1px solid rgba(200,169,81,0.1);
+            color: var(--gold);
+            font-size: 18px;
+        }
+        .supabase-warning {
+            background: rgba(229,77,77,0.08);
+            border: 1px solid rgba(229,77,77,0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: var(--danger);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-slow { animation: floatSlow 6s ease-in-out infinite; }
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+        .glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
+        @media (max-width: 768px) {
+            .hero-blob-1 { width: 300px; height: 300px; }
+            .hero-blob-2 { width: 250px; height: 250px; }
+            .hero-blob-3 { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-grid">
+
+    <div id="toast-container" role="alert" aria-live="polite"></div>
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3 no-underline">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--gold), var(--gold-dim));">
+                    <i class="fas fa-gem text-sm" style="color: #0a0a0a;"></i>
+                </div>
+                <span class="font-heading font-bold text-lg" style="color: var(--fg);">Premium Hub</span>
+            </a>
+            <div class="flex items-center gap-3">
+                <a href="#how-it-works" class="hidden sm:inline-block text-sm px-4 py-2 rounded-lg no-underline transition-colors duration-200" style="color: var(--fg-muted);" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">How It Works</a>
+                <a href="#why-us" class="hidden sm:inline-block text-sm px-4 py-2 rounded-lg no-underline transition-colors duration-200" style="color: var(--fg-muted);" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">Features</a>
+                <a href="#codeSection" class="btn-gold text-sm px-5 py-2.5 rounded-lg no-underline flex items-center gap-2">
+                    <i class="fas fa-unlock text-xs"></i> Access Now
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden">
+        <div class="hero-blob hero-blob-1"></div>
+        <div class="hero-blob hero-blob-2"></div>
+        <div class="hero-blob hero-blob-3"></div>
+
+        <!-- Decorative floating shapes -->
+        <div class="absolute top-1/4 left-[8%] w-3 h-3 rounded-full float-slow glow-pulse" style="background: var(--gold); animation-delay: 0s;"></div>
+        <div class="absolute top-1/3 right-[12%] w-2 h-2 rounded-full float-slow glow-pulse" style="background: var(--gold-light); animation-delay: -2s;"></div>
+        <div class="absolute bottom-1/4 left-[15%] w-2.5 h-2.5 rounded-full float-slow glow-pulse" style="background: var(--gold-dim); animation-delay: -4s;"></div>
+        <div class="absolute top-[60%] right-[8%] w-1.5 h-1.5 rounded-full float-slow glow-pulse" style="background: var(--gold); animation-delay: -1s;"></div>
+        <div class="absolute top-[20%] left-[45%] w-2 h-2 rounded-full float-slow glow-pulse" style="background: var(--gold-light); animation-delay: -3s;"></div>
+
+        <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8" style="background: rgba(200,169,81,0.08); border: 1px solid rgba(200,169,81,0.12);">
+                <span class="w-2 h-2 rounded-full animate-pulse" style="background: var(--gold);"></span>
+                <span class="text-xs font-medium tracking-wide" style="color: var(--gold);">EXCLUSIVE ACCESS AVAILABLE</span>
+            </div>
+
+            <h1 class="font-heading font-bold leading-tight mb-6" style="font-size: clamp(2.5rem, 7vw, 5rem);">
+                Unlock <span class="text-gold-gradient">Exclusive</span> Content
+            </h1>
+            <p class="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style="color: var(--fg-muted);">
+                Enter your unique access code to unlock premium video content curated just for you. No subscriptions, no hidden fees — just pure quality.
+            </p>
+
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+                <a href="#codeSection" class="btn-gold px-8 py-4 rounded-xl font-heading text-base tracking-wide flex items-center gap-3 no-underline">
+                    Get Started <i class="fas fa-arrow-right text-sm"></i>
+                </a>
+                <a href="#how-it-works" class="btn-ghost px-8 py-4 rounded-xl font-heading text-sm tracking-wide flex items-center gap-3 no-underline">
+                    <i class="fas fa-circle-play text-sm"></i> Learn More
+                </a>
+            </div>
+
+            <!-- Trust badges -->
+            <div class="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-shield-halved text-xs" style="color: var(--gold);"></i>
+                    <span class="text-xs" style="color: var(--fg-muted);">Secure Access</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-bolt text-xs" style="color: var(--gold);"></i>
+                    <span class="text-xs" style="color: var(--fg-muted);">Instant Delivery</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                    <span class="text-xs" style="color: var(--fg-muted);">Premium Quality</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-headset text-xs" style="color: var(--gold);"></i>
+                    <span class="text-xs" style="color: var(--fg-muted);">24/7 Support</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+            <span class="text-[10px] tracking-widest uppercase" style="color: var(--fg-muted);">Scroll</span>
+            <div class="w-5 h-8 rounded-full border flex items-start justify-center pt-1.5" style="border-color: var(--border);">
+                <div class="w-1 h-2 rounded-full animate-bounce" style="background: var(--gold);"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Input Section -->
+    <section class="py-20 relative" id="codeSection">
+        <div class="max-w-lg mx-auto px-6">
+            <div class="text-center mb-8 reveal">
+                <div class="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(200,169,81,0.15), rgba(200,169,81,0.04)); border: 1px solid rgba(200,169,81,0.15);">
+                    <i class="fas fa-key text-xl" style="color: var(--gold);"></i>
+                </div>
+                <h2 class="font-heading font-bold text-2xl md:text-3xl mb-3">Enter Your Access Code</h2>
+                <p class="text-sm" style="color: var(--fg-muted);">Type the code you received to unlock your content</p>
+            </div>
+
+            <div class="glass rounded-2xl p-8 reveal" id="codeCard">
+                <div class="supabase-warning mb-6 hidden" id="supabaseWarning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <p class="font-semibold text-sm">Service Not Ready</p>
+                        <p class="text-xs mt-1" style="color: rgba(229,77,77,0.7);">The backend service is being configured. Please try again later.</p>
+                    </div>
+                </div>
+
+                <div class="code-input-wrapper mb-4">
+                    <input type="text" id="codeInput" class="code-input" placeholder="Enter your code here..." autocomplete="off" spellcheck="false" aria-label="Access code input">
+                </div>
+
+                <div class="hidden mb-4" id="codeError">
+                    <div class="flex items-center gap-3 px-4 py-3 rounded-lg error-msg" style="background: rgba(229,77,77,0.08); border: 1px solid rgba(229,77,77,0.15);">
+                        <i class="fas fa-circle-xmark" style="color: var(--danger);"></i>
+                        <p class="text-sm" style="color: var(--danger);" id="codeErrorText">Invalid code. Please check and try again.</p>
+                    </div>
+                </div>
+
+                <button class="btn-gold w-full py-4 rounded-xl font-heading text-base tracking-wide flex items-center justify-center gap-3" id="submitCodeBtn" onclick="handleCodeSubmit()">
+                    <span id="submitBtnText">Unlock Content</span>
+                    <span id="submitBtnSpinner" class="hidden"><span class="spinner" style="border-color:rgba(10,10,10,0.2);border-top-color:#0a0a0a;"></span></span>
+                    <i class="fas fa-arrow-right text-sm" id="submitBtnArrow"></i>
+                </button>
+
+                <p class="text-center text-xs mt-5" style="color: var(--fg-muted);">
+                    <i class="fas fa-lock text-[10px] mr-1"></i>
+                    Your code is verified securely. We never store personal data.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-20" id="how-it-works">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-14 reveal">
+                <span class="text-xs font-semibold tracking-widest uppercase" style="color: var(--gold);">Simple Process</span>
+                <h2 class="font-heading font-bold text-3xl md:text-4xl mt-3">How It Works</h2>
+                <p class="text-sm mt-4 max-w-lg mx-auto" style="color: var(--fg-muted);">Three simple steps to access your premium content</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass rounded-2xl p-8 text-center reveal" style="transition-delay: 0.05s;">
+                    <div class="step-number mx-auto mb-5">1</div>
+                    <h3 class="font-heading font-semibold text-lg mb-3">Enter Your Code</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">Type the unique access code you received from our platform into the input field above.</p>
+                </div>
+                <div class="glass rounded-2xl p-8 text-center reveal" style="transition-delay: 0.15s;">
+                    <div class="step-number mx-auto mb-5">2</div>
+                    <h3 class="font-heading font-semibold text-lg mb-3">Quick Verification</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">Our system instantly validates your code against our secure database. The process takes less than a second.</p>
+                </div>
+                <div class="glass rounded-2xl p-8 text-center reveal" style="transition-delay: 0.25s;">
+                    <div class="step-number mx-auto mb-5">3</div>
+                    <h3 class="font-heading font-semibold text-lg mb-3">Access Content</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">Get redirected to your exclusive premium video content immediately. Enjoy uninterrupted streaming.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us -->
+    <section class="py-20" id="why-us">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-14 reveal">
+                <span class="text-xs font-semibold tracking-widest uppercase" style="color: var(--gold);">Our Advantage</span>
+                <h2 class="font-heading font-bold text-3xl md:text-4xl mt-3">Why Choose Us</h2>
+                <p class="text-sm mt-4 max-w-lg mx-auto" style="color: var(--fg-muted);">We deliver an experience that sets us apart from the rest</p>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-5">
+                <div class="glass rounded-xl p-7 flex gap-5 reveal">
+                    <div class="feature-icon flex-shrink-0"><i class="fas fa-bolt"></i></div>
+                    <div>
+                        <h3 class="font-heading font-semibold mb-2">Instant Access</h3>
+                        <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">No waiting, no approvals. Enter your code and get immediate access to your premium content without any delays.</p>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-7 flex gap-5 reveal">
+                    <div class="feature-icon flex-shrink-0"><i class="fas fa-crown"></i></div>
+                    <div>
+                        <h3 class="font-heading font-semibold mb-2">Premium Quality</h3>
+                        <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">All content is handpicked and delivered in the highest quality available. We never compromise on the viewing experience.</p>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-7 flex gap-5 reveal">
+                    <div class="feature-icon flex-shrink-0"><i class="fas fa-shield-halved"></i></div>
+                    <div>
+                        <h3 class="font-heading font-semibold mb-2">Secure and Private</h3>
+                        <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">Your data stays safe. We use industry-standard encryption and never share your information with third parties.</p>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-7 flex gap-5 reveal">
+                    <div class="feature-icon flex-shrink-0"><i class="fas fa-headset"></i></div>
+                    <div>
+                        <h3 class="font-heading font-semibold mb-2">24/7 Support</h3>
+                        <p class="text-sm leading-relaxed" style="color: var(--fg-muted);">Our dedicated support team is available around the clock to help you with any issues or questions you may have.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-20">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-14 reveal">
+                <span class="text-xs font-semibold tracking-widest uppercase" style="color: var(--gold);">Trusted by Many</span>
+                <h2 class="font-heading font-bold text-3xl md:text-4xl mt-3">What Our Users Say</h2>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass rounded-2xl p-7 reveal" style="transition-delay: 0.05s;">
+                    <div class="flex gap-1 mb-4">
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                    </div>
+                    <p class="text-sm leading-relaxed mb-6" style="color: var(--fg-muted);">"Absolutely fantastic experience. The code system is so simple and the content quality exceeded my expectations. Will definitely use again."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="avatar-ring"><img src="https://picsum.photos/seed/user1face/80/80.jpg" alt="Sarah M." class="w-10 h-10 rounded-full object-cover"></div>
+                        <div>
+                            <p class="text-sm font-semibold">Sarah Mitchell</p>
+                            <p class="text-xs" style="color: var(--fg-muted);">Content Creator</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass rounded-2xl p-7 reveal" style="transition-delay: 0.15s;">
+                    <div class="flex gap-1 mb-4">
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                    </div>
+                    <p class="text-sm leading-relaxed mb-6" style="color: var(--fg-muted);">"The fastest access system I've ever used. Entered my code and was watching premium content within seconds. Top-notch platform all around."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="avatar-ring"><img src="https://picsum.photos/seed/user2face/80/80.jpg" alt="James R." class="w-10 h-10 rounded-full object-cover"></div>
+                        <div>
+                            <p class="text-sm font-semibold">James Rodriguez</p>
+                            <p class="text-xs" style="color: var(--fg-muted);">Digital Marketer</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass rounded-2xl p-7 reveal" style="transition-delay: 0.25s;">
+                    <div class="flex gap-1 mb-4">
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star text-xs" style="color: var(--gold);"></i>
+                        <i class="fas fa-star-half-stroke text-xs" style="color: var(--gold);"></i>
+                    </div>
+                    <p class="text-sm leading-relaxed mb-6" style="color: var(--fg-muted);">"Premium Hub delivers exactly what it promises. Clean interface, instant access, and the content library is impressive. Highly recommended."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="avatar-ring"><img src="https://picsum.photos/seed/user3face/80/80.jpg" alt="Emily K." class="w-10 h-10 rounded-full object-cover"></div>
+                        <div>
+                            <p class="text-sm font-semibold">Emily Kowalski</p>
+                            <p class="text-xs" style="color: var(--fg-muted);">Freelance Designer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20">
+        <div class="max-w-3xl mx-auto px-6">
+            <div class="glass rounded-3xl p-10 md:p-14 text-center relative overflow-hidden reveal">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full" style="background: radial-gradient(circle, rgba(200,169,81,0.1), transparent 70%); filter: blur(60px);"></div>
+                <div class="relative z-10">
+                    <h2 class="font-heading font-bold text-2xl md:text-3xl mb-4">Ready to Get Started?</h2>
+                    <p class="text-sm mb-8 max-w-md mx-auto" style="color: var(--fg-muted);">Join thousands of users who trust Premium Hub for their exclusive content needs.</p>
+                    <a href="#codeSection" class="btn-gold inline-flex items-center gap-3 px-8 py-4 rounded-xl font-heading text-base tracking-wide no-underline">
+                        Enter Your Code Now <i class="fas fa-arrow-right text-sm"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t" style="border-color: var(--border);">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--gold), var(--gold-dim));">
+                        <i class="fas fa-gem text-xs" style="color: #0a0a0a;"></i>
+                    </div>
+                    <span class="font-heading font-bold" style="color: var(--fg);">Premium Hub</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="#" class="text-sm no-underline transition-colors duration-200" style="color: var(--fg-muted);" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">Privacy Policy</a>
+                    <a href="#" class="text-sm no-underline transition-colors duration-200" style="color: var(--fg-muted);" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">Terms of Service</a>
+                    <a href="#" class="text-sm no-underline transition-colors duration-200" style="color: var(--fg-muted);" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">Contact</a>
+                </div>
+                <p class="text-xs" style="color: var(--fg-muted);">&copy; 2025 Premium Hub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const SUPABASE_URL = 'https://lirixsoqtwgiksgintem.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdHGyFSRmd-aeL-3dcW6kg_bHjW1elu';
+
+        let db = null;
+        let isSupabaseConfigured = false;
+
+        try {
+            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_ANON_KEY') {
+                db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                isSupabaseConfigured = true;
+                console.log('[Supabase] Client initialized');
+            } else {
+                console.warn('[Supabase] Running in demo mode');
+                document.getElementById('supabaseWarning').classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error('[Supabase] Init failed:', err);
+            document.getElementById('supabaseWarning').classList.remove('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            console.log(`[Toast] ${type}: ${message}`);
+            setTimeout(() => {
+                toast.style.animation = 'toastOut 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        const codeInput = document.getElementById('codeInput');
+        const submitBtn = document.getElementById('submitCodeBtn');
+        const submitBtnText = document.getElementById('submitBtnText');
+        const submitBtnSpinner = document.getElementById('submitBtnSpinner');
+        const submitBtnArrow = document.getElementById('submitBtnArrow');
+        const codeError = document.getElementById('codeError');
+        const codeErrorText = document.getElementById('codeErrorText');
+        const codeCard = document.getElementById('codeCard');
+
+        codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCodeSubmit(); });
+        codeInput.addEventListener('input', () => { codeError.classList.add('hidden'); codeCard.classList.remove('shake'); });
+
+        function setSubmitLoading(loading) {
+            submitBtn.disabled = loading;
+            submitBtnText.classList.toggle('hidden', loading);
+            submitBtnSpinner.classList.toggle('hidden', !loading);
+            submitBtnArrow.classList.toggle('hidden', loading);
+        }
+
+        function showCodeError(msg) {
+            codeErrorText.textContent = msg;
+            codeError.classList.remove('hidden');
+            const inner = codeError.querySelector('div');
+            inner.classList.remove('error-msg');
+            void inner.offsetWidth;
+            inner.classList.add('error-msg');
+            codeCard.classList.remove('shake');
+            void codeCard.offsetWidth;
+            codeCard.classList.add('shake');
+        }
+
+        async function handleCodeSubmit() {
+            const code = codeInput.value.trim().toUpperCase();
+            console.log('[Code Submit] Code:', code);
+
+            if (!code) { showCodeError('Please enter an access code.'); return; }
+            if (!isSupabaseConfigured) { showCodeError('Service is being configured. Please try again later.'); return; }
+
+            setSubmitLoading(true);
+            codeError.classList.add('hidden');
+
+            try {
+                const { data, error } = await db.from('codes').select('*').eq('code', code).single();
+                console.log('[Code Submit] Response:', { data, error });
+
+                if (error || !data) {
+                    showCodeError('Invalid code. Please check and try again.');
+                    showToast('Invalid code entered', 'error');
+                    setSubmitLoading(false);
+                    return;
+                }
+
+                const storageKey = `code_used_${code}`;
+                const alreadyUsed = localStorage.getItem(storageKey);
+                let redirectUrl;
+
+                if (alreadyUsed) {
+                    redirectUrl = data.video_link;
+                    console.log('[Code Submit] Returning user -> video:', redirectUrl);
+                } else {
+                    localStorage.setItem(storageKey, 'true');
+                    redirectUrl = data.ad_link;
+                    console.log('[Code Submit] First time -> ad:', redirectUrl);
+                }
+
+                setSubmitLoading(false);
+                
+                // Direct redirect without video modal
+                console.log('[Redirect] Directly redirecting to:', redirectUrl);
+                window.location.href = redirectUrl;
+            } catch (err) {
+                console.error('[Code Submit] Error:', err);
+                showCodeError('Something went wrong. Please try again later.');
+                showToast('Connection error', 'error');
+                setSubmitLoading(false);
+            }
+        }
+
+        // Navbar scroll
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 40) {
+                navbar.style.background = 'rgba(5,5,5,0.85)';
+                navbar.style.backdropFilter = 'blur(16px)';
+                navbar.style.borderBottom = '1px solid var(--border)';
+            } else {
+                navbar.style.background = 'transparent';
+                navbar.style.backdropFilter = 'none';
+                navbar.style.borderBottom = '1px solid transparent';
+            }
+        });
+
+        // Scroll reveal
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    </script>
+</body>
+</html>
