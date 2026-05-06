@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Hub — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['DM Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #050505;
+            --bg-elevated: #0c0c0c;
+            --card: rgba(255,255,255,0.03);
+            --card-hover: rgba(255,255,255,0.06);
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --fg: #f0ece4;
+            --fg-muted: #8a8578;
+            --gold: #C8A951;
+            --gold-light: #E2C566;
+            --gold-dim: #A68B3C;
+            --gold-glow: rgba(200,169,81,0.15);
+            --danger: #e54d4d;
+            --success: #4ade80;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+        .bg-grid {
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            transition: all 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        .glass:hover {
+            background: var(--card-hover);
+            border-color: var(--border-hover);
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            color: #0a0a0a;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .btn-gold::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            transition: left 0.5s;
+        }
+        .btn-gold:hover::before { left: 100%; }
+        .btn-gold:hover {
+            box-shadow: 0 8px 32px var(--gold-glow), 0 0 60px rgba(200,169,81,0.08);
+            transform: translateY(-1px);
+        }
+        .btn-gold:active { transform: translateY(0) scale(0.98); }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .btn-gold:disabled::before { display: none; }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,169,81,0.05); }
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2.5px solid rgba(10,10,10,0.2);
+            border-top-color: #0a0a0a;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+        .spinner-light { border-color: rgba(200,169,81,0.2); border-top-color: var(--gold); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            min-height: 100vh;
+            background: var(--bg-elevated);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            left: 0; top: 0;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: var(--fg-muted);
+            text-decoration: none;
+            transition: all 0.25s;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .sidebar-link:hover { color: var(--fg); background: rgba(255,255,255,0.04); }
+        .sidebar-link.active { color: var(--gold); background: rgba(200,169,81,0.08); }
+        .sidebar-link.active i { color: var(--gold); }
+        .admin-main { margin-left: 260px; min-height: 100vh; }
+
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%; right: -50%;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(200,169,81,0.04), transparent 70%);
+            pointer-events: none;
+        }
+
+        .admin-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .admin-table th {
+            text-align: left; padding: 12px 16px; font-size: 12px;
+            text-transform: uppercase; letter-spacing: 1px;
+            color: var(--fg-muted); border-bottom: 1px solid var(--border); font-weight: 600;
+        }
+        .admin-table td {
+            padding: 14px 16px; font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle;
+        }
+        .admin-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .admin-input {
+            width: 100%; padding: 12px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--fg);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .admin-input:focus { border-color: var(--gold); box-shadow: 0 0 20px var(--gold-glow); }
+        .admin-input::placeholder { color: var(--fg-muted); }
+
+        .btn-delete {
+            padding: 6px 14px; border-radius: 8px;
+            background: rgba(229,77,77,0.08);
+            border: 1px solid rgba(229,77,77,0.15);
+            color: var(--danger); font-size: 13px;
+            cursor: pointer; transition: all 0.25s;
+        }
+        .btn-delete:hover { background: rgba(229,77,77,0.15); border-color: rgba(229,77,77,0.3); }
+
+        .feature-icon {
+            width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 12px;
+            background: rgba(200,169,81,0.08);
+            border: 1px solid rgba(200,169,81,0.1);
+            color: var(--gold); font-size: 18px;
+        }
+
+        .link-truncate {
+            max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; display: inline-block;
+            color: var(--fg-muted); font-size: 13px;
+        }
+
+        .page-enter { animation: pageEnter 0.5s cubic-bezier(.4,0,.2,1); }
+        @keyframes pageEnter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+        .supabase-warning {
+            background: rgba(229,77,77,0.08);
+            border: 1px solid rgba(229,77,77,0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: var(--danger);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #toast-container {
+            position: fixed; top: 24px; right: 24px; z-index: 2000;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px; min-width: 280px;
+            animation: toastIn 0.4s cubic-bezier(.4,0,.2,1);
+            backdrop-filter: blur(16px); border: 1px solid var(--border);
+        }
+        .toast-success { background: rgba(74,222,128,0.1); color: var(--success); border-color: rgba(74,222,128,0.2); }
+        .toast-error { background: rgba(229,77,77,0.1); color: var(--danger); border-color: rgba(229,77,77,0.2); }
+        .toast-info { background: rgba(200,169,81,0.1); color: var(--gold-light); border-color: rgba(200,169,81,0.2); }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+
+        .sidebar-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .sidebar-overlay.active { opacity: 1; pointer-events: all; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .admin-main { margin-left: 0; }
+            .link-truncate { max-width: 120px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-grid">
+
+    <div id="toast-container" role="alert" aria-live="polite"></div>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="p-6 border-b" style="border-color: var(--border);">
+            <a href="index.html" class="flex items-center gap-3 no-underline">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--gold), var(--gold-dim));">
+                    <i class="fas fa-gem text-sm" style="color: #0a0a0a;"></i>
+                </div>
+                <div>
+                    <span class="font-heading font-bold text-base block" style="color: var(--fg);">Premium Hub</span>
+                    <span class="text-[10px] tracking-wider uppercase" style="color: var(--fg-muted);">Control Panel</span>
+                </div>
+            </a>
+        </div>
+
+        <nav class="p-4 flex flex-col gap-1">
+            <div class="sidebar-link active" data-view="dashboard" onclick="switchView('dashboard')">
+                <i class="fas fa-chart-pie w-5 text-center"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="sidebar-link" data-view="add-code" onclick="switchView('add-code')">
+                <i class="fas fa-plus-circle w-5 text-center"></i>
+                <span>Add Code</span>
+            </div>
+            <div class="sidebar-link" data-view="manage-codes" onclick="switchView('manage-codes')">
+                <i class="fas fa-table-list w-5 text-center"></i>
+                <span>Manage Codes</span>
+            </div>
+        </nav>
+
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t" style="border-color: var(--border);">
+            <a href="index.html" class="sidebar-link">
+                <i class="fas fa-arrow-left w-5 text-center"></i>
+                <span>Back to Site</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+        <!-- Topbar -->
+        <header class="sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between" style="background: rgba(5,5,5,0.8); backdrop-filter: blur(16px); border-color: var(--border);">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--card); border: 1px solid var(--border);" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+                    <i class="fas fa-bars text-sm" style="color: var(--fg-muted);"></i>
+                </button>
+                <h1 class="font-heading font-semibold text-lg" id="pageTitle">Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, var(--gold), var(--gold-dim));">
+                    <i class="fas fa-user text-xs" style="color: #0a0a0a;"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="p-6 md:p-8">
+
+            <!-- Supabase warning -->
+            <div class="supabase-warning mb-6 hidden" id="supabaseWarning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <p class="font-semibold text-sm">Supabase Not Configured</p>
+                    <p class="text-xs mt-1" style="color: rgba(229,77,77,0.7);">Set your SUPABASE_URL and SUPABASE_ANON_KEY in the script to use all features.</p>
+                </div>
+            </div>
+
+            <!-- VIEW: Dashboard -->
+            <div id="view-dashboard" class="page-enter">
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                    <div class="glass stat-card rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--fg-muted);">Total Codes</span>
+                            <div class="feature-icon" style="width:36px;height:36px;border-radius:10px;font-size:14px;"><i class="fas fa-key"></i></div>
+                        </div>
+                        <p class="font-heading font-bold text-3xl" id="statTotalCodes">0</p>
+                        <p class="text-xs mt-2" style="color: var(--fg-muted);">Active access codes</p>
+                    </div>
+                    <div class="glass stat-card rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--fg-muted);">Total Clicks</span>
+                            <div class="feature-icon" style="width:36px;height:36px;border-radius:10px;font-size:14px;"><i class="fas fa-mouse-pointer"></i></div>
+                        </div>
+                        <p class="font-heading font-bold text-3xl">1,247</p>
+                        <p class="text-xs mt-2" style="color: var(--success);"><i class="fas fa-arrow-up text-[10px]"></i> 12.5% from last week</p>
+                    </div>
+                    <div class="glass stat-card rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--fg-muted);">Active Today</span>
+                            <div class="feature-icon" style="width:36px;height:36px;border-radius:10px;font-size:14px;"><i class="fas fa-bolt"></i></div>
+                        </div>
+                        <p class="font-heading font-bold text-3xl">38</p>
+                        <p class="text-xs mt-2" style="color: var(--fg-muted);">Codes used today</p>
+                    </div>
+                    <div class="glass stat-card rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--fg-muted);">Success Rate</span>
+                            <div class="feature-icon" style="width:36px;height:36px;border-radius:10px;font-size:14px;"><i class="fas fa-chart-line"></i></div>
+                        </div>
+                        <p class="font-heading font-bold text-3xl">94.2%</p>
+                        <p class="text-xs mt-2" style="color: var(--success);"><i class="fas fa-arrow-up text-[10px]"></i> 3.1% improvement</p>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="font-heading font-semibold mb-5">Recent Activity</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4 p-3 rounded-lg" style="background: rgba(255,255,255,0.02);">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(74,222,128,0.1);"><i class="fas fa-check text-xs" style="color: var(--success);"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium">Code <span style="color: var(--gold);">ABC123</span> was used</p>
+                                <p class="text-xs" style="color: var(--fg-muted);">Redirected to ad link</p>
+                            </div>
+                            <span class="text-xs flex-shrink-0" style="color: var(--fg-muted);">2 min ago</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-lg" style="background: rgba(255,255,255,0.02);">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(229,77,77,0.1);"><i class="fas fa-xmark text-xs" style="color: var(--danger);"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium">Invalid code attempt: <span style="color: var(--danger);">XX99ZZ</span></p>
+                                <p class="text-xs" style="color: var(--fg-muted);">Code not found in database</p>
+                            </div>
+                            <span class="text-xs flex-shrink-0" style="color: var(--fg-muted);">15 min ago</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-lg" style="background: rgba(255,255,255,0.02);">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(74,222,128,0.1);"><i class="fas fa-check text-xs" style="color: var(--success);"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium">Code <span style="color: var(--gold);">DEMO456</span> was used (2nd time)</p>
+                                <p class="text-xs" style="color: var(--fg-muted);">Redirected to video link</p>
+                            </div>
+                            <span class="text-xs flex-shrink-0" style="color: var(--fg-muted);">1 hour ago</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-lg" style="background: rgba(255,255,255,0.02);">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(200,169,81,0.1);"><i class="fas fa-plus text-xs" style="color: var(--gold);"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium">New code added: <span style="color: var(--gold);">NEW789</span></p>
+                                <p class="text-xs" style="color: var(--fg-muted);">Created by you</p>
+                            </div>
+                            <span class="text-xs flex-shrink-0" style="color: var(--fg-muted);">3 hours ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: Add Code -->
+            <div id="view-add-code" class="hidden page-enter">
+                <div class="max-w-xl">
+                    <div class="glass rounded-2xl p-8">
+                        <h3 class="font-heading font-semibold text-xl mb-2">Create New Code</h3>
+                        <p class="text-sm mb-8" style="color: var(--fg-muted);">Generate a new access code with its associated links.</p>
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--fg-muted);">Access Code</label>
+                                <input type="text" id="newCode" class="admin-input" placeholder="e.g. PROMO2025" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--fg-muted);">Ad Link (first visit)</label>
+                                <input type="url" id="newAdLink" class="admin-input" placeholder="https://example.com/ad">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--fg-muted);">Video Link (second visit)</label>
+                                <input type="url" id="newVideoLink" class="admin-input" placeholder="https://example.com/video">
+                            </div>
+                            <button class="btn-gold w-full py-3.5 rounded-xl font-heading text-sm tracking-wide flex items-center justify-center gap-2 mt-2" id="addCodeBtn" onclick="handleAddCode()">
+                                <span id="addCodeBtnText"><i class="fas fa-plus mr-1"></i> Add Code</span>
+                                <span id="addCodeBtnSpinner" class="hidden"><span class="spinner" style="border-color:rgba(10,10,10,0.2);border-top-color:#0a0a0a;"></span></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: Manage Codes -->
+            <div id="view-manage-codes" class="hidden page-enter">
+                <div class="glass rounded-xl overflow-hidden">
+                    <div class="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b" style="border-color: var(--border);">
+                        <div>
+                            <h3 class="font-heading font-semibold text-lg">All Codes</h3>
+                            <p class="text-xs mt-1" style="color: var(--fg-muted);">Manage your access codes</p>
+                        </div>
+                        <button class="btn-ghost text-xs px-4 py-2 rounded-lg flex items-center gap-2" onclick="loadCodes()">
+                            <i class="fas fa-rotate"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="admin-table" id="codesTable">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Ad Link</th>
+                                    <th>Video Link</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="codesTableBody">
+                                <tr>
+                                    <td colspan="4" class="text-center py-12" style="color: var(--fg-muted);">
+                                        <div class="spinner spinner-light mx-auto mb-3" style="width:24px;height:24px;border-width:2.5px;"></div>
+                                        Loading codes...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://lirixsoqtwgiksgintem.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdHGyFSRmd-aeL-3dcW6kg_bHjW1elu';
+
+        let db = null;
+        let isSupabaseConfigured = false;
+
+        try {
+            if (SUPABASE_URL !== 'https://lirixsoqtwgiksgintem.supabase.co' && SUPABASE_ANON_KEY !== 'sb_publishable_pdHGyFSRmd-aeL-3dcW6kg_bHjW1elu') {
+                db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                isSupabaseConfigured = true;
+                console.log('[Supabase] Client initialized');
+            } else {
+                console.warn('[Supabase] Running in demo mode');
+                document.getElementById('supabaseWarning').classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error('[Supabase] Init failed:', err);
+            document.getElementById('supabaseWarning').classList.remove('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            console.log(`[Toast] ${type}: ${message}`);
+            setTimeout(() => {
+                toast.style.animation = 'toastOut 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        /* Sidebar toggle */
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        /* View switching */
+        function switchView(viewName) {
+            console.log('[View] Switching to:', viewName);
+
+            document.querySelectorAll('.sidebar-link[data-view]').forEach(link => {
+                link.classList.toggle('active', link.dataset.view === viewName);
+            });
+
+            const titles = { 'dashboard': 'Dashboard', 'add-code': 'Add Code', 'manage-codes': 'Manage Codes' };
+            document.getElementById('pageTitle').textContent = titles[viewName] || 'Dashboard';
+
+            ['dashboard', 'add-code', 'manage-codes'].forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (v === viewName) {
+                    el.classList.remove('hidden');
+                    el.classList.remove('page-enter');
+                    void el.offsetWidth;
+                    el.classList.add('page-enter');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            if (viewName === 'manage-codes') loadCodes();
+            if (viewName === 'dashboard') loadTotalCodesCount();
+
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        /* Load total codes count for dashboard stat */
+        async function loadTotalCodesCount() {
+            const el = document.getElementById('statTotalCodes');
+            if (!isSupabaseConfigured) { el.textContent = '--'; return; }
+            try {
+                const { count, error } = await db.from('codes').select('*', { count: 'exact', head: true });
+                if (error) throw error;
+                el.textContent = count ?? 0;
+                console.log('[Dashboard] Total codes:', count);
+            } catch (err) {
+                console.error('[Dashboard] Count error:', err);
+                el.textContent = '--';
+            }
+        }
+
+        /* Add Code */
+        async function handleAddCode() {
+            const code = document.getElementById('newCode').value.trim().toUpperCase();
+            const adLink = document.getElementById('newAdLink').value.trim();
+            const videoLink = document.getElementById('newVideoLink').value.trim();
+
+            console.log('[Add Code] Inputs:', { code, adLink, videoLink });
+
+            if (!code) { showToast('Please enter an access code', 'error'); return; }
+            if (!adLink) { showToast('Please enter an ad link', 'error'); return; }
+            if (!videoLink) { showToast('Please enter a video link', 'error'); return; }
+            try { new URL(adLink); } catch { showToast('Ad link must be a valid URL', 'error'); return; }
+            try { new URL(videoLink); } catch { showToast('Video link must be a valid URL', 'error'); return; }
+            if (!isSupabaseConfigured) { showToast('Supabase not configured', 'error'); return; }
+
+            const btn = document.getElementById('addCodeBtn');
+            const btnText = document.getElementById('addCodeBtnText');
+            const btnSpinner = document.getElementById('addCodeBtnSpinner');
+
+            btn.disabled = true;
+            btnText.classList.add('hidden');
+            btnSpinner.classList.remove('hidden');
+
+            try {
+                const { data, error } = await db.from('codes').insert({ code, ad_link: adLink, video_link: videoLink }).select().single();
+                console.log('[Add Code] Response:', { data, error });
+
+                if (error) {
+                    if (error.code === '23505') { showToast('This code already exists', 'error'); }
+                    else { throw error; }
+                } else {
+                    showToast(`Code "${code}" added successfully`, 'success');
+                    document.getElementById('newCode').value = '';
+                    document.getElementById('newAdLink').value = '';
+                    document.getElementById('newVideoLink').value = '';
+                }
+            } catch (err) {
+                console.error('[Add Code] Error:', err);
+                showToast('Failed to add code: ' + (err.message || 'Unknown error'), 'error');
+            }
+
+            btn.disabled = false;
+            btnText.classList.remove('hidden');
+            btnSpinner.classList.add('hidden');
+        }
+
+        // Enter key support for add form
+        ['newCode', 'newAdLink', 'newVideoLink'].forEach(id => {
+            document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAddCode(); });
+        });
+
+        /* Load Codes */
+        async function loadCodes() {
+            const tbody = document.getElementById('codesTableBody');
+            tbody.innerHTML = `
+                <tr><td colspan="4" class="text-center py-12" style="color: var(--fg-muted);">
+                    <div class="spinner spinner-light mx-auto mb-3" style="width:24px;height:24px;border-width:2.5px;"></div>
+                    Loading codes...</td></tr>`;
+
+            if (!isSupabaseConfigured) {
+                tbody.innerHTML = `
+                    <tr><td colspan="4" class="text-center py-12" style="color: var(--fg-muted);">
+                        <i class="fas fa-database text-2xl mb-3 block"></i>
+                        Configure Supabase to view codes</td></tr>`;
+                return;
+            }
+
+            try {
+                const { data, error } = await db.from('codes').select('*').order('created_at', { ascending: false });
+                console.log('[Load Codes] Response:', { data, error });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="4" class="text-center py-12" style="color: var(--fg-muted);">
+                            <i class="fas fa-inbox text-2xl mb-3 block"></i>
+                            No codes found. Add your first code.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(row => `
+                    <tr>
+                        <td><span class="font-heading font-semibold text-sm" style="color: var(--gold);">${escapeHtml(row.code)}</span></td>
+                        <td><span class="link-truncate" title="${escapeHtml(row.ad_link)}">${escapeHtml(row.ad_link)}</span></td>
+                        <td><span class="link-truncate" title="${escapeHtml(row.video_link)}">${escapeHtml(row.video_link)}</span></td>
+                        <td class="text-right">
+                            <button class="btn-delete" onclick="deleteCode('${escapeHtml(row.id)}', '${escapeHtml(row.code)}')">
+                                <i class="fas fa-trash-can text-xs mr-1"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('[Load Codes] Error:', err);
+                tbody.innerHTML = `
+                    <tr><td colspan="4" class="text-center py-12" style="color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-3 block"></i>
+                        Failed to load codes: ${escapeHtml(err.message)}</td></tr>`;
+            }
+        }
+
+        /* Delete Code */
+        async function deleteCode(id, code) {
+            if (!confirm(`Delete code "${code}"? This cannot be undone.`)) return;
+            console.log('[Delete Code] Deleting:', code, 'id:', id);
+
+            if (!isSupabaseConfigured) { showToast('Supabase not configured', 'error'); return; }
+
+            try {
+                const { error } = await db.from('codes').delete().eq('id', id);
+                console.log('[Delete Code] Response:', { error });
+                if (error) throw error;
+                showToast(`Code "${code}" deleted`, 'success');
+                loadCodes();
+                loadTotalCodesCount();
+            } catch (err) {
+                console.error('[Delete Code] Error:', err);
+                showToast('Failed to delete code', 'error');
+            }
+        }
+
+        // Initial load
+        loadTotalCodesCount();
+    </script>
+</body>
+</html>
